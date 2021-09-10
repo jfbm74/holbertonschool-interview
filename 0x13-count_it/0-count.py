@@ -1,45 +1,52 @@
 #!/usr/bin/python3
 """recursive function that queries the Reddit API, parses the title of
 all hot articles, and prints a sorted count of given keywords"""
-import operator
-import requests
+import requests as rq
 
 
-def count_words(subreddit, word_list, after="", word_dict={}):
-    """recursive method"""
-    url = "https://reddit.com/r/" + subreddit + "/hot.json?&after=" + after
-    headers = {'user-agent': 'Chrome/81.0.4044.129'}
-    reddit = requests.get(url, headers=headers).json()
-    if 'error' in reddit or len(reddit['data']['children']) == 0:
+def generate_dicts(word_list):
+    """
+    creates dictionaries
+    """
+    count = {k: 0 for k in word_list}
+    dup = {}
+    for k in word_list:
+        if k not in dup:
+            dup[k] = 0
+        dup[k] += 1
+    return (count, dup)
+
+
+def count_words(subreddit, word_list, after="", count={}, dup={}, init=0):
+    """
+    Reddit API
+    """
+    if not init:
+        count, dup = generate_dicts(word_list)
+
+    url = "https://api.reddit.com/r/{}/hot?after={}".format(subreddit, after)
+    headers = {"User-Agent": "Python3"}
+    response = rq.request("GET", url, headers=headers).json()
+    try:
+        data = response.get('data')
+        top = data.get('children')
+        _after = data.get('after')
+
+        for item in top:
+            data = item.get('data')['title']
+            for word in count:
+                amount = data.lower().split(' ').count(word.lower())
+                count[word] += amount
+
+        if _after:
+            count_words(subreddit, word_list, _after, count, dup, 1)
+        else:
+            sort_abc = sorted(count.items(), key=lambda tup: tup[::-1])
+            desc = sorted(sort_abc, key=lambda tup: tup[1], reverse=True)
+
+            for name, cnt in desc:
+                cnt *= dup[name]
+                if cnt:
+                    print('{}: {}'.format(name.lower(), cnt))
+    except Exception:
         return None
-    if len(word_dict) == 0:
-        for word in word_list:
-            word_dict[word] = 0
-    children = reddit['data']['children']
-    for child in children:
-        words = child["data"]["title"].lower()
-        words = words.split()
-        for word in words:
-            for w in word_list:
-                if w.lower() == word:
-                    word_dict[w] += 1
-    after = reddit['data']['after']
-    if after is None:
-        dict_sorted = sorted(word_dict.items(),
-                             key=operator.itemgetter(1), reverse=True)
-        ordered = 0
-        while ordered != 1:
-            ordered = 1
-            for i in range(len(dict_sorted)):
-                if i < len(dict_sorted) - 1:
-                    if dict_sorted[i][1] == dict_sorted[i+1][1]:
-                        if dict_sorted[i][0] > dict_sorted[i+1][0]:
-                            ordered = 0
-                            aux = dict_sorted[i]
-                            dict_sorted[i] = dict_sorted[i+1]
-                            dict_sorted[i+1] = aux
-        for w in dict_sorted:
-            if w[1] > 0:
-                print("{}: {}".format(w[0], w[1]))
-    else:
-        count_words(subreddit, word_list, after, word_dict)
