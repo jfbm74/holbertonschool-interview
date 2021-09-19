@@ -1,39 +1,95 @@
 #!/usr/bin/python3
-""" This script solves the N queens problem. """
+""" This script solves the N-Queen problem"""
+
+
 import sys
 
-if len(sys.argv) != 2:
-    print('Usage: nqueens N')
-    exit(1)
-try:
-    N = int(sys.argv[1])
-except Exception:
-    print('N must be a number')
-    exit(1)
 
-if N < 4:
-    print('N must be at least 4')
-    exit(1)
-
-ans = []
-
-
-def solve(i):
+def check_moves(matrix, position_x, position_y):
     """
-    Recursive algorithm to solve the N queens problem.
-    i is the current queen been placed (starting from 0)
+    This function checks if a position (x, y) has
+    has a 1 horizontal, vertical or diagonal
     """
-    for j in range(N):
-        if ans == []:
-            ans.append([i, j])
-            solve(i + 1)
-            ans.pop()
-        else:
-            test = [j == e[1] or abs(i - e[0]) == abs(j - e[1]) for e in ans]
-            if not any(test):
-                ans.append([i, j])
-                if i == N - 1:
-                    print(ans)
-                else:
-                    solve(i + 1)
-                ans.pop()
+    for x in range(len(matrix)):
+        for y in range(len(matrix[0])):
+            # Checks for horizontal queens
+            if (matrix[x][position_y] == 1):
+                return(0)
+            # Checks for vertical queens
+            if (matrix[position_x][y] == 1):
+                return(0)
+            # Diagonal Check for queens
+            try:
+                if (matrix[position_x + x][position_y + x] == 1):
+                    return(0)
+            except IndexError:
+                pass
+            try:
+                if (position_x - x >= 0):
+                    if (matrix[position_x - x][position_y + x] == 1):
+                        return(0)
+            except IndexError:
+                pass
+            try:
+                if (position_x - x >= 0 and position_y - x >= 0):
+                    if (matrix[position_x - x][position_y - x] == 1):
+                        return(0)
+            except IndexError:
+                pass
+            try:
+                if (position_y - x >= 0):
+                    if (matrix[position_x + x][position_y - x] == 1):
+                        return(0)
+            except IndexError:
+                pass
+    return(1)
+
+
+def put_coords(matrix, result):
+    """
+    This function print a pair of coords to result
+    """
+    for i in range(0, len(matrix)):
+        for j in range(0, len(matrix[0])):
+            if (matrix[i][j] == 1):
+                result[i][0] = i
+                result[i][1] = j
+    return result
+
+
+def recursive_chess(matrix, columns, n):
+    """
+    This function checks for every queen
+    if there's a queen atacking if not print
+    the n queens position
+    """
+    if (columns == n):
+        result = [[0 for x in range(2)] for y in range(n)]
+        print(put_coords(matrix, result))
+        return
+
+    for row in range(n):
+        if (check_moves(matrix, row, columns) == 1):
+            matrix[row][columns] = 1
+            recursive_chess(matrix, columns + 1, n)
+            matrix[row][columns] = 0
+
+
+if __name__ == '__main__':
+
+    if len(sys.argv) != 2:
+        print("Usage: nqueens N")
+        sys.exit(1)
+
+    try:
+        n = int(sys.argv[1])
+    except ValueError:
+        print("N must be a number")
+        sys.exit(1)
+
+    if n < 4:
+        print("N must be at least 4")
+        sys.exit(1)
+
+    matrix = [[0 for j in range(n)] for i in range(n)]
+    recursive_chess(matrix, 0, n)
