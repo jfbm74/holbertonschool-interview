@@ -1,48 +1,29 @@
 #!/usr/bin/node
-
 /*
-Get all the characters from a given movie
+In the Terminal:
+export NODE_PATH=/usr/lib/node_modules
 */
-
 const request = require('request');
-const movieId = process.argv[2];
-const url = 'https://swapi-api.hbtn.io/api/films/' + movieId;
+const baseURL = 'https://swapi-api.hbtn.io/api/films/'.concat(process.argv[2]);
 
-const getName = async (ch) => {
-  return new Promise((resolve, reject) => {
-    request(ch, (err, res, body) => {
-      if (err) {
-        reject(err);
-      } else {
-        const jsonBody = JSON.parse(body);
-        resolve(jsonBody.name);
-      }
+request(baseURL, async function (error, response, body) {
+  if (error) {
+    console.log(error);
+    return;
+  }
+  const characters = JSON.parse(body).characters;
+
+  for (let i = 0; i < characters.length; i++) {
+    await new Promise(function (resolve, reject) {
+      request(characters[i], function (err, res, bod) {
+        if (err) {
+          console.log(err);
+          reject(err);
+        } else {
+          console.log(JSON.parse(bod).name);
+          resolve();
+        }
+      });
     });
-  });
-};
-
-const getMovie = async () => {
-  return new Promise((resolve, reject) => {
-    request(url, (err, res, body) => {
-      if (err) {
-        reject(err);
-      } else {
-        const jsonBody = JSON.parse(body);
-        resolve(jsonBody.characters);
-      }
-    });
-  });
-};
-
-(async () => {
-  return getMovie();
-})().then(async (movies) => {
-  if (typeof (movies) === 'object') {
-    for (const ch of movies) {
-      const name = await getName(ch);
-      if (typeof (movies) === 'object') {
-        console.log(name);
-      }
-    }
   }
 });
